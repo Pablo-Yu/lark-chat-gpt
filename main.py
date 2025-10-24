@@ -4,24 +4,24 @@ import os
 
 app = Flask(__name__)
 
-# 设置 OpenAI API 密钥
+# 设置你的 OpenAI 密钥
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Lark 回调验证接口（POST方式）
+# ✅ 回调接口 - 处理验证与正常请求
 @app.route("/", methods=["POST"])
-def handle_lark_event():
-    data = request.json
+def handle_callback():
+    data = request.get_json()
 
-    # Lark URL 验证（带 challenge 字段）
+    # ⚠️ 检查 challenge 是否存在，处理 Lark 的验证请求
     if "challenge" in data:
         return jsonify({"challenge": data["challenge"]})
 
-    # 正常文本分析逻辑
+    # 否则正常处理 text 字段
     content = data.get("text", "")
     if not content:
         return jsonify({"error": "No text provided"}), 400
 
-    # 调用 OpenAI 进行分析
+    # 调用 ChatGPT 分析文本
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
@@ -29,10 +29,11 @@ def handle_lark_event():
             {"role": "user", "content": content}
         ]
     )
+
     reply = response["choices"][0]["message"]["content"]
     return jsonify({"result": reply})
 
-# ✅ Render 健康检查用的 GET 路由（可选）
+# ✅ Render 健康检查 GET 路由
 @app.route("/", methods=["GET"])
 def health_check():
     return "OK", 200
